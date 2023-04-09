@@ -451,6 +451,15 @@ void Weapon_Generic (edict_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST,
 
 	if (ent->client->weaponstate == WEAPON_READY)
 	{
+		//kmw Activating Right-Click Ability
+		if (ent->item->classname == "weapon_blaster")
+		{
+			gi.multicast(ent->s.origin, MULTICAST_PVS);
+			gi.centerprintf(ent, "Test");
+			ClientEndServerFrame(ent);
+		}
+
+
 		if ( ((ent->client->latched_buttons|ent->client->buttons) & BUTTON_ATTACK) )
 		{
 			ent->client->latched_buttons &= ~BUTTON_ATTACK;
@@ -829,7 +838,7 @@ void Blaster_Fire (edict_t *ent, vec3_t g_offset, int damage, qboolean hyper, in
 	VectorScale (forward, -2, ent->client->kick_origin);
 	ent->client->kick_angles[0] = -1;
 
-	fire_rocket (ent, start, forward, 50, 5, 20, 10);
+	fire_blaster(ent, start, forward, damage, 1000, effect, hyper);
 
 	// send muzzle flash
 	gi.WriteByte (svc_muzzleflash);

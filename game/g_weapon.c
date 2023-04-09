@@ -617,15 +617,6 @@ void rocket_touch (edict_t *ent, edict_t *other, cplane_t *plane, csurface_t *su
 	G_FreeEdict (ent);
 }
 
-void rocket_think(edict_t* self) {
-	vec3_t aimdir = { 0 };
-	self->nextthink = level.time + 2;
-	aimdir[0] = crandom(0);
-	aimdir[1] = crandom(0);
-	aimdir[2] = crandom(0);
-	fire_grenade(self->owner, self->s.origin, aimdir, 25, 100, 2, 50);
-}
-
 void fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage)
 {
 	edict_t	*rocket;
@@ -645,7 +636,7 @@ void fire_rocket (edict_t *self, vec3_t start, vec3_t dir, int damage, int speed
 	rocket->owner = self;
 	rocket->touch = rocket_touch;
 	rocket->nextthink = level.time + 8000/speed;
-	rocket->think = rocket_think;
+	rocket->think = G_FreeEdict;
 	rocket->dmg = damage;
 	rocket->radius_dmg = radius_damage;
 	rocket->dmg_radius = damage_radius;

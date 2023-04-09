@@ -1,13 +1,16 @@
 //Microsoft Developer Studio generated resource script.
 //
-#include "resource.h"
+// kmw: commented out #include "resource.h" and replaced with #include <windows.h>
+//#include "resource.h"
+#include <windows.h>
 
 #define APSTUDIO_READONLY_SYMBOLS
 /////////////////////////////////////////////////////////////////////////////
 //
 // Generated from the TEXTINCLUDE 2 resource.
 //
-#include "afxres.h"
+// kmw: Commented out #include "afxres.h"
+//#include "afxres.h"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
