@@ -1574,8 +1574,12 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	int		i, j;
 	pmove_t	pm;
 
+	//kmw ClientThink Local Variables
+	gitem_t *currentWeapon;
+
 	level.current_entity = ent;
 	client = ent->client;
+
 
 	if (level.intermissiontime)
 	{
@@ -1740,6 +1744,15 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		other = g_edicts + i;
 		if (other->inuse && other->client->chase_target == ent)
 			UpdateChaseCam(other);
+	}
+
+	//kmw Activating Right-Click Ability
+
+	if (client->weaponstate == WEAPON_READY)
+	{
+		if (ent->item == FindItemByClassname("weapon_blaster")) {
+			gi.bprintf(PRINT_HIGH, "Test\n");
+		}
 	}
 }
 
