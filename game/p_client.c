@@ -1750,7 +1750,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	if (client->weaponstate == WEAPON_READY)
 	{
-		if (ent->item == FindItemByClassname("weapon_blaster")) {
+		if (client->pers.weapon->classname == "weapon_blaster") {
 			gi.bprintf(PRINT_HIGH, "Test\n");
 		}
 	}
