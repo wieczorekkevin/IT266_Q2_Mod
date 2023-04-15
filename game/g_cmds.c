@@ -905,12 +905,60 @@ void Cmd_PlayerList_f(edict_t *ent)
 
 void Cmd_WeaponAlternate(edict_t* ent)
 {
-	float skillCooldown = 0.0;
 	//Blaster Skill: High Jump
 	if (ent->client->pers.weapon->classname == "weapon_blaster") {
 		if (blasterSkill == 0) {
 			ent->velocity[2] = 420;
 			blasterSkill = 1;
+		}
+	}
+
+	//Shotgun Skill: Dash
+	if (ent->client->pers.weapon->classname == "weapon_shotgun") {
+
+		if ((shotgunSkill == 0) && (ent->client->pers.inventory[ent->client->ammo_index] >= 10)) {
+			float viewPitch = ent->client->ps.viewangles[PITCH];
+			float viewYaw = ent->client->ps.viewangles[YAW];
+			//gi.centerprintf(ent, "pitch: %f / yaw: %f", viewPitch, viewYaw);
+
+			if (viewPitch < 0) {
+				ent->velocity[2] = (viewPitch * -1) + 300;
+			}
+			else if (viewPitch > 0) {
+				ent->velocity[2] = ((viewPitch * -1) + 300) * -1;
+			}
+			if (viewYaw < 0) {
+				ent->velocity[1] = -500;
+			}
+			else if (viewYaw > 0) {
+				ent->velocity[1] = 500;
+			}
+			if ((viewYaw < 0) && (viewYaw > -90)) {					// -90 to 0
+				if (!(((viewYaw > -90) && (viewYaw < -80)) || ((viewYaw > -10) && (viewYaw < 0))))
+					ent->velocity[0] = ((viewYaw * -1) + 300);
+			}
+			else if ((viewYaw > 0) && (viewYaw < 90)) {				// 0 to 90
+				if (!(((viewYaw > 0) && (viewYaw < 10)) || ((viewYaw > 80) && (viewYaw < 90))))
+					ent->velocity[0] = (viewYaw + 300);
+			}
+			else if ((viewYaw < -90) && (viewYaw > -180)) {			//	-90 to -180
+				if (!(((viewYaw > -180) && (viewYaw < -170)) || ((viewYaw > -110) && (viewYaw < -90))))
+					ent->velocity[0] = ((viewYaw * -1) + 300) * -1;
+			}
+			else if ((viewYaw > 90) && (viewYaw < 180)) {			// 90 to 180
+				if (!(((viewYaw > 90) && (viewYaw < 100)) || ((viewYaw > 170) && (viewYaw < 180))))
+					ent->velocity[0] = (viewYaw + 300) * -1;
+			}
+
+			shotgunSkill = 1;
+			ent->client->pers.inventory[ent->client->ammo_index] -= 10;
+			//gi.centerprintf(ent, "current ammo: %i", ent->client->pers.inventory[ent->client->ammo_index]);
+
+			if (ent->client->pers.inventory[ent->client->ammo_index] < 0)
+				ent->client->pers.inventory[ent->client->ammo_index] = 0;
+		}
+		else if (ent->client->pers.inventory[ent->client->ammo_index] < 10) {
+			gi.centerprintf(ent, "Not enough ammo!");
 		}
 	}
 }

@@ -23,6 +23,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //kmw p_client.c Globals
 char* lastWeapon = "none";	// save last weapon name
 int blasterSkill;
+int shotgunSkill;
 
 void ClientUserinfoChanged (edict_t *ent, char *userinfo);
 
@@ -1755,6 +1756,7 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	//Check if player on ground for Blaster Ability
 	if (ent->velocity[2] == 0) {
 		blasterSkill = 0;
+		shotgunSkill = 0;
 	}
 
 	//Activating Right-Click Ability
