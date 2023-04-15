@@ -907,16 +907,15 @@ void Cmd_WeaponAlternate(edict_t* ent)
 {
 	//Blaster Skill: High Jump
 	if (ent->client->pers.weapon->classname == "weapon_blaster") {
-		if (blasterSkill == 0) {
+		if (ent->velocity[2] == 0) {
 			ent->velocity[2] = 420;
-			blasterSkill = 1;
 		}
 	}
 
 	//Shotgun Skill: Dash
 	if (ent->client->pers.weapon->classname == "weapon_shotgun") {
 
-		if ((shotgunSkill == 0) && (ent->client->pers.inventory[ent->client->ammo_index] >= 10)) {
+		if ((ent->velocity[2] == 0) && (ent->client->pers.inventory[ent->client->ammo_index] >= 10)) {
 			float viewPitch = ent->client->ps.viewangles[PITCH];
 			float viewYaw = ent->client->ps.viewangles[YAW];
 			//gi.centerprintf(ent, "pitch: %f / yaw: %f", viewPitch, viewYaw);

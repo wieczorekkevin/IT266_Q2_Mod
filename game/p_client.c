@@ -1585,7 +1585,6 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	level.current_entity = ent;
 	client = ent->client;
 
-
 	if (level.intermissiontime)
 	{
 		client->ps.pmove.pm_type = PM_FREEZE;
@@ -1753,15 +1752,9 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	//kmw Client Think Code
 
-	//Check if player on ground for Blaster Ability
-	if (ent->velocity[2] == 0) {
-		blasterSkill = 0;
-		shotgunSkill = 0;
-	}
-
 	//Activating Right-Click Ability
 
-	if (client->weaponstate == WEAPON_READY)
+	if ( (client->weaponstate == WEAPON_READY) && (ent->health > 0) )
 	{
 		if ( (client->pers.weapon->classname == "weapon_blaster") && (client->pers.weapon->classname != lastWeapon) ) {
 			gi.bprintf(PRINT_HIGH, "Blaster Skill Ready!\n");
