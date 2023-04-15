@@ -20,6 +20,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g_local.h"
 #include "m_player.h"
 
+//kmw g_cmds.c Globals
+int blasterSkill;
 
 char *ClientTeam (edict_t *ent)
 {
@@ -903,8 +905,13 @@ void Cmd_PlayerList_f(edict_t *ent)
 
 void Cmd_WeaponAlternate(edict_t* ent)
 {
+	float skillCooldown = 0.0;
+	//Blaster Skill: High Jump
 	if (ent->client->pers.weapon->classname == "weapon_blaster") {
-		
+		if (blasterSkill == 0) {
+			ent->velocity[2] = 420;
+			blasterSkill = 1;
+		}
 	}
 }
 

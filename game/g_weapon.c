@@ -19,9 +19,6 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "g_local.h"
 
-//kmw Weapon Ready Globals
-int blasterReady;
-
 /*
 =================
 check_dodge
