@@ -20,6 +20,9 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #include "g_local.h"
 #include "m_player.h"
 
+//kmw p_client.c Globals
+char* lastWeapon = "none";	// save last weapon name
+
 void ClientUserinfoChanged (edict_t *ent, char *userinfo);
 
 void SP_misc_teleporter_dest (edict_t *ent);
@@ -1750,8 +1753,45 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	if (client->weaponstate == WEAPON_READY)
 	{
-		if (client->pers.weapon->classname == "weapon_blaster") {
-			gi.bprintf(PRINT_HIGH, "Test\n");
+		if ( (client->pers.weapon->classname == "weapon_blaster") && (client->pers.weapon->classname != lastWeapon) ) {
+			gi.bprintf(PRINT_HIGH, "Blaster Skill Ready!\n");
+			lastWeapon = "weapon_blaster";
+		}
+		else if ( (client->pers.weapon->classname == "weapon_shotgun") && (client->pers.weapon->classname != lastWeapon) ) {
+			gi.bprintf(PRINT_HIGH, "Shotgun Skill Ready!\n");
+			lastWeapon = "weapon_shotgun";
+		}
+		else if ( (client->pers.weapon->classname == "weapon_supershotgun") && (client->pers.weapon->classname != lastWeapon) ) {
+			gi.bprintf(PRINT_HIGH, "Super Shotgun Skill Ready!\n");
+			lastWeapon = "weapon_supershotgun";
+		}
+		else if ( (client->pers.weapon->classname == "weapon_machinegun") && (client->pers.weapon->classname != lastWeapon) ) {
+			gi.bprintf(PRINT_HIGH, "Machine Gun Skill Ready!\n");
+			lastWeapon = "weapon_machinegun";
+		}
+		else if ( (client->pers.weapon->classname == "weapon_chaingun") && (client->pers.weapon->classname != lastWeapon) ) {
+			gi.bprintf(PRINT_HIGH, "Chain Gun Skill Ready!\n");
+			lastWeapon = "weapon_chaingun";
+		}
+		else if ((client->pers.weapon->classname == "weapon_grenadelauncher") && (client->pers.weapon->classname != lastWeapon)) {
+			gi.bprintf(PRINT_HIGH, "Grenade Launcher Skill Ready!\n");
+			lastWeapon = "weapon_grenadelauncher";
+		}
+		else if ((client->pers.weapon->classname == "weapon_rocketlauncher") && (client->pers.weapon->classname != lastWeapon)) {
+			gi.bprintf(PRINT_HIGH, "Rocket Launcher Skill Ready!\n");
+			lastWeapon = "weapon_rocketlauncher";
+		}
+		else if ((client->pers.weapon->classname == "weapon_hyperblaster") && (client->pers.weapon->classname != lastWeapon)) {
+			gi.bprintf(PRINT_HIGH, "Hyperblaster Skill Ready!\n");
+			lastWeapon = "weapon_hyperblaster";
+		}
+		else if ((client->pers.weapon->classname == "weapon_railgun") && (client->pers.weapon->classname != lastWeapon)) {
+			gi.bprintf(PRINT_HIGH, "Railgun Skill Ready!\n");
+			lastWeapon = "weapon_railgun";
+		}
+		else if ((client->pers.weapon->classname == "weapon_bfg") && (client->pers.weapon->classname != lastWeapon)) {
+			gi.bprintf(PRINT_HIGH, "BFG Skill Ready!\n");
+			lastWeapon = "weapon_bfg";
 		}
 	}
 }
