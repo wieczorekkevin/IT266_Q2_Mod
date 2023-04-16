@@ -1752,6 +1752,12 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 
 	//kmw Client Think Code
 
+	//Refresh cooldowns if touching the ground
+	if ((ent->velocity[2] == 0) && (ent->health > 0)) {
+		blasterSkill = 0;
+		shotgunSkill = 0;
+	}
+	
 	//Activating Right-Click Ability
 
 	if ( (client->weaponstate == WEAPON_READY) && (ent->health > 0) )

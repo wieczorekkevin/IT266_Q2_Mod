@@ -22,6 +22,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 //kmw g_cmds.c Globals
 int blasterSkill;
+int shotgunSkill;
 
 char *ClientTeam (edict_t *ent)
 {
@@ -141,6 +142,111 @@ void ValidateSelectedItem (edict_t *ent)
 	SelectNextItem (ent, -1);
 }
 
+//kmw Specific Ability Functions
+
+static void P_ProjectSource(gclient_t* client, vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t result)
+{
+	vec3_t	_distance;
+
+	VectorCopy(distance, _distance);
+	if (client->pers.hand == LEFT_HANDED)
+		_distance[1] *= -1;
+	else if (client->pers.hand == CENTER_HANDED)
+		_distance[1] = 0;
+	G_ProjectSource(point, _distance, forward, right, result);
+}
+
+void Alt_SuperShotgun_BoltTouch(edict_t* self, edict_t* other, cplane_t* plane, csurface_t* surf) {
+	int	mod = MOD_HYPERBLASTER;
+
+	if (other == self->owner)
+		return;
+
+	if (surf && (surf->flags & SURF_SKY))
+	{
+		G_FreeEdict(self);
+		return;
+	}
+
+	if (self->owner->client)
+		PlayerNoise(self->owner, self->s.origin, PNOISE_IMPACT);
+
+	if (other->takedamage)
+	{
+		//self->client->ps.pmove.origin[0] = other->s.origin[0];
+		//self->client->ps.pmove.origin[1] = other->s.origin[1];
+		//self->client->ps.pmove.origin[2] = other->s.origin[2];
+		//VectorCopy(other->pos1, self->s.origin);
+		//VectorCopy(other->pos2, self->s.origin);
+		T_Damage(other, self, self->owner, self->velocity, self->s.origin, plane->normal, 10000, 1, DAMAGE_ENERGY, mod);
+	}
+	else
+	{
+		gi.WriteByte(svc_temp_entity);
+		gi.WriteByte(TE_BLASTER);
+		gi.WritePosition(self->s.origin);
+		if (!plane)
+			gi.WriteDir(vec3_origin);
+		else
+			gi.WriteDir(plane->normal);
+		gi.multicast(self->s.origin, MULTICAST_PVS);
+	}
+
+	G_FreeEdict(self);
+}
+
+void fire_supershotgun_alt(edict_t* self, vec3_t start, vec3_t dir, int damage, int speed, int effect)
+{
+	edict_t* bolt;
+	trace_t	tr;
+
+	VectorNormalize(dir);
+
+	bolt = G_Spawn();
+	bolt->svflags = SVF_DEADMONSTER;
+
+	VectorCopy(start, bolt->s.origin);
+	VectorCopy(start, bolt->s.old_origin);
+	vectoangles(dir, bolt->s.angles);
+	VectorScale(dir, speed, bolt->velocity);
+	bolt->movetype = MOVETYPE_FLYMISSILE;
+	bolt->clipmask = MASK_SHOT;
+	bolt->solid = SOLID_BBOX;
+	bolt->s.effects |= effect;
+	VectorClear(bolt->mins);
+	VectorClear(bolt->maxs);
+	bolt->s.modelindex = gi.modelindex("models/objects/laser/tris.md2");
+	bolt->s.sound = gi.soundindex("misc/lasfly.wav");
+	bolt->owner = self;
+	bolt->touch = Alt_SuperShotgun_BoltTouch;
+	bolt->nextthink = level.time + 2;
+	bolt->think = G_FreeEdict;
+	bolt->dmg = damage;
+	bolt->classname = "bolt";
+
+	tr = gi.trace(self->s.origin, NULL, NULL, bolt->s.origin, bolt, MASK_SHOT);
+	if (tr.fraction < 1.0)
+	{
+		VectorMA(bolt->s.origin, -10, dir, bolt->s.origin);
+		bolt->touch(bolt, tr.ent, NULL, NULL);
+	}
+}
+
+void Alt_SuperShotgun_Fire(edict_t* ent, vec3_t g_offset, int damage, int effect) {
+	vec3_t	forward, right;
+	vec3_t	start;
+	vec3_t	offset;
+
+	AngleVectors(ent->client->v_angle, forward, right, NULL);
+	VectorSet(offset, 24, 8, ent->viewheight - 8);
+	VectorAdd(offset, g_offset, offset);
+	P_ProjectSource(ent->client, ent->s.origin, offset, forward, right, start);
+
+	VectorScale(forward, -2, ent->client->kick_origin);
+	ent->client->kick_angles[0] = -1;
+
+	fire_supershotgun_alt(ent, start, forward, damage, 1000, effect);
+}
 
 //=================================================================================
 
@@ -901,21 +1007,22 @@ void Cmd_PlayerList_f(edict_t *ent)
 	gi.cprintf(ent, PRINT_HIGH, "%s", text);
 }
 
-//kmw Custom Comamnds
+//kmw Custom Commands
 
 void Cmd_WeaponAlternate(edict_t* ent)
 {
 	//Blaster Skill: High Jump
 	if (ent->client->pers.weapon->classname == "weapon_blaster") {
-		if (ent->velocity[2] == 0) {
+		if (blasterSkill == 0) {
 			ent->velocity[2] = 420;
+			blasterSkill = 1;
 		}
 	}
 
 	//Shotgun Skill: Dash
 	if (ent->client->pers.weapon->classname == "weapon_shotgun") {
 
-		if ((ent->velocity[2] == 0) && (ent->client->pers.inventory[ent->client->ammo_index] >= 10)) {
+		if ((shotgunSkill == 0) && (ent->client->pers.inventory[ent->client->ammo_index] >= 10)) {
 			float viewPitch = ent->client->ps.viewangles[PITCH];
 			float viewYaw = ent->client->ps.viewangles[YAW];
 			//gi.centerprintf(ent, "pitch: %f / yaw: %f", viewPitch, viewYaw);
@@ -959,6 +1066,23 @@ void Cmd_WeaponAlternate(edict_t* ent)
 		else if (ent->client->pers.inventory[ent->client->ammo_index] < 10) {
 			gi.centerprintf(ent, "Not enough ammo!");
 		}
+	}
+
+	//Super Shotgun Skill:
+	if (ent->client->pers.weapon->classname == "weapon_supershotgun") {
+		vec3_t vec3_origin = { 0,0,0 };
+
+		if (ent->client->pers.inventory[ent->client->ammo_index] >= 20) {
+			Alt_SuperShotgun_Fire(ent, vec3_origin, 10000, false, EF_BLASTER);
+			ent->client->pers.inventory[ent->client->ammo_index] -= 20;
+
+			if (ent->client->pers.inventory[ent->client->ammo_index] < 0)
+				ent->client->pers.inventory[ent->client->ammo_index] = 0;
+		}
+		else if (ent->client->pers.inventory[ent->client->ammo_index] < 20) {
+			gi.centerprintf(ent, "Not enough ammo!");
+		}
+		
 	}
 }
 
