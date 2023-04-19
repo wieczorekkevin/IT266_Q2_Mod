@@ -173,7 +173,10 @@ void Alt_SuperShotgun_BoltTouch(edict_t* self, edict_t* other, cplane_t* plane, 
 
 	if (other->takedamage)
 	{
-		//self->client->ps.pmove.origin[0] = other->s.origin[0];
+		gi.bprintf(PRINT_HIGH, "%s old position\n", vtos(self->s.origin));
+		VectorCopy(other->s.origin, self->owner->s.origin);
+		VectorCopy(other->s.origin, self->owner->s.old_origin);
+		gi.bprintf(PRINT_HIGH, "%s new position\n", vtos(self->s.origin));
 		//self->client->ps.pmove.origin[1] = other->s.origin[1];
 		//self->client->ps.pmove.origin[2] = other->s.origin[2];
 		//VectorCopy(other->pos1, self->s.origin);
