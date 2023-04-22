@@ -23,6 +23,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //kmw g_cmds.c Globals
 int blasterSkill;
 int shotgunSkill;
+edict_t* grenadelauncherMine;
+int grenadelauncherSkill = 0;
 
 char *ClientTeam (edict_t *ent)
 {
@@ -173,14 +175,10 @@ void Alt_SuperShotgun_BoltTouch(edict_t* self, edict_t* other, cplane_t* plane, 
 
 	if (other->takedamage)
 	{
-		gi.bprintf(PRINT_HIGH, "%s old position\n", vtos(self->s.origin));
+		//gi.bprintf(PRINT_HIGH, "%s old position\n", vtos(self->s.origin));
 		VectorCopy(other->s.origin, self->owner->s.origin);
 		VectorCopy(other->s.origin, self->owner->s.old_origin);
-		gi.bprintf(PRINT_HIGH, "%s new position\n", vtos(self->s.origin));
-		//self->client->ps.pmove.origin[1] = other->s.origin[1];
-		//self->client->ps.pmove.origin[2] = other->s.origin[2];
-		//VectorCopy(other->pos1, self->s.origin);
-		//VectorCopy(other->pos2, self->s.origin);
+		//gi.bprintf(PRINT_HIGH, "%s new position\n", vtos(self->s.origin));
 		T_Damage(other, self, self->owner, self->velocity, self->s.origin, plane->normal, 10000, 1, DAMAGE_ENERGY, mod);
 	}
 	else
@@ -389,7 +387,124 @@ void Alt_MachineGun_Fire(edict_t* ent) {
 	ent->client->kick_angles[0] = -1;
 
 	fire_machinegun_alt(ent, start, forward, damage, 600, 2.5, radius);
+}
 
+void Alt_GrenadeLauncher_Explode(edict_t* ent)
+{
+	vec3_t		origin;
+	int			mod;
+
+	if (ent->owner->client)
+		PlayerNoise(ent->owner, ent->s.origin, PNOISE_IMPACT);
+
+	if (ent->enemy)
+	{
+		float	points;
+		vec3_t	v;
+		vec3_t	dir;
+
+		VectorAdd(ent->enemy->mins, ent->enemy->maxs, v);
+		VectorMA(ent->enemy->s.origin, 0.5, v, v);
+		VectorSubtract(ent->s.origin, v, v);
+		points = ent->dmg - 0.5 * VectorLength(v);
+		VectorSubtract(ent->enemy->s.origin, ent->s.origin, dir);
+		if (ent->spawnflags & 1)
+			mod = MOD_HANDGRENADE;
+		else
+			mod = MOD_GRENADE;
+		T_Damage(ent->enemy, ent, ent->owner, dir, ent->s.origin, vec3_origin, (int)points, (int)points, DAMAGE_RADIUS, mod);
+	}
+
+	if (ent->spawnflags & 2)
+		mod = MOD_HELD_GRENADE;
+	else if (ent->spawnflags & 1)
+		mod = MOD_HG_SPLASH;
+	else
+		mod = MOD_G_SPLASH;
+	T_RadiusDamage(ent, ent->owner, ent->dmg, ent->enemy, ent->dmg_radius, mod);
+
+	VectorMA(ent->s.origin, -0.02, ent->velocity, origin);
+	gi.WriteByte(svc_temp_entity);
+	if (ent->waterlevel)
+	{
+		if (ent->groundentity)
+			gi.WriteByte(TE_GRENADE_EXPLOSION_WATER);
+		else
+			gi.WriteByte(TE_ROCKET_EXPLOSION_WATER);
+	}
+	else
+	{
+		if (ent->groundentity)
+			gi.WriteByte(TE_GRENADE_EXPLOSION);
+		else
+			gi.WriteByte(TE_ROCKET_EXPLOSION);
+	}
+	gi.WritePosition(origin);
+	gi.multicast(ent->s.origin, MULTICAST_PHS);
+
+	G_FreeEdict(ent);
+	grenadelauncherSkill = 0;
+}
+
+void Alt_GrenadeLauncher_Touch(edict_t* ent, edict_t* other, cplane_t* plane, csurface_t* surf)
+{
+	if (other == ent->owner)
+		return;
+
+	if (surf && (surf->flags & SURF_SKY))
+	{
+		G_FreeEdict(ent);
+		return;
+	}
+
+	if (!other->takedamage)
+	{
+		if (ent->spawnflags & 1)
+		{
+			if (random() > 0.5)
+				gi.sound(ent, CHAN_VOICE, gi.soundindex("weapons/hgrenb1a.wav"), 1, ATTN_NORM, 0);
+			else
+				gi.sound(ent, CHAN_VOICE, gi.soundindex("weapons/hgrenb2a.wav"), 1, ATTN_NORM, 0);
+		}
+		else
+		{
+			gi.sound(ent, CHAN_VOICE, gi.soundindex("weapons/grenlb1b.wav"), 1, ATTN_NORM, 0);
+		}
+		return;
+	}
+
+	ent->enemy = other;
+	Alt_GrenadeLauncher_Explode(ent);
+}
+
+void Alt_GrenadeLauncher_Fire(edict_t* ent, vec3_t origin, int flag) {
+	//If mine is not set
+	if (flag == 0) {
+		grenadelauncherSkill = 1;
+		grenadelauncherMine = G_Spawn();
+		VectorCopy(origin, grenadelauncherMine->s.origin);
+		grenadelauncherMine->movetype = MOVETYPE_NONE;
+		grenadelauncherMine->clipmask = MASK_SHOT;
+		grenadelauncherMine->solid = SOLID_BBOX;
+		grenadelauncherMine->s.effects |= EF_GRENADE;
+		VectorClear(grenadelauncherMine->mins);
+		VectorClear(grenadelauncherMine->maxs);
+		grenadelauncherMine->s.modelindex = gi.modelindex("models/objects/grenade/tris.md2");
+		grenadelauncherMine->owner = ent;
+		grenadelauncherMine->touch = Alt_Machinegun_Touch;
+		grenadelauncherMine->nextthink = level.time + 10000;
+		grenadelauncherMine->think = Alt_Machinegun_Explode;
+		grenadelauncherMine->dmg = 80;
+		grenadelauncherMine->dmg_radius = 55;
+		grenadelauncherMine->classname = "grenade";
+
+		gi.linkentity(grenadelauncherMine);
+
+	}
+	//If mine is set
+	else if (flag == 1) {
+		Alt_GrenadeLauncher_Explode(grenadelauncherMine);
+	}
 }
 
 
@@ -1234,17 +1349,33 @@ void Cmd_WeaponAlternate(edict_t* ent)
 	if (ent->client->pers.weapon->classname == "weapon_machinegun") {
 		vec3_t vec3_origin = { 0,0,0 };
 
-		if (ent->client->pers.inventory[ent->client->ammo_index] >= 20) {
+		if (ent->client->pers.inventory[ent->client->ammo_index] >= 30) {
 			Alt_MachineGun_Fire(ent);
-			ent->client->pers.inventory[ent->client->ammo_index] -= 20;
+			ent->client->pers.inventory[ent->client->ammo_index] -= 30;
 
 			if (ent->client->pers.inventory[ent->client->ammo_index] < 0)
 				ent->client->pers.inventory[ent->client->ammo_index] = 0;
 		}
-		else if (ent->client->pers.inventory[ent->client->ammo_index] < 20) {
+		else if (ent->client->pers.inventory[ent->client->ammo_index] < 30) {
 			gi.centerprintf(ent, "Not enough ammo!");
 		}
 	}
+
+	//Chain Gun Skill:
+
+	//Grenade Launcher Skill: Mine
+	if (ent->client->pers.weapon->classname == "weapon_grenadelauncher") {
+		vec3_t mine_origin;
+		VectorCopy(ent->s.origin, mine_origin);
+		
+		if (grenadelauncherSkill == 0) {
+			Alt_GrenadeLauncher_Fire(ent, mine_origin, 0);
+		}
+		else if (grenadelauncherSkill == 1) {
+			Alt_GrenadeLauncher_Fire(ent, mine_origin, 1);
+		}
+	}
+
 }
 
 /*
