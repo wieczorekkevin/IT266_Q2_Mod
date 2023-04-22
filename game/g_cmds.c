@@ -251,6 +251,148 @@ void Alt_SuperShotgun_Fire(edict_t* ent, vec3_t g_offset, int damage, int effect
 	fire_supershotgun_alt(ent, start, forward, damage, 1000, effect);
 }
 
+void Alt_Machinegun_Explode(edict_t* ent)
+{
+	vec3_t		origin;
+	int			mod;
+
+	if (ent->owner->client)
+		PlayerNoise(ent->owner, ent->s.origin, PNOISE_IMPACT);
+
+	//FIXME: if we are onground then raise our Z just a bit since we are a point?
+	if (ent->enemy)
+	{
+		float	points;
+		vec3_t	v;
+		vec3_t	dir;
+
+		VectorAdd(ent->enemy->mins, ent->enemy->maxs, v);
+		VectorMA(ent->enemy->s.origin, 0.5, v, v);
+		VectorSubtract(ent->s.origin, v, v);
+		points = ent->dmg - 0.5 * VectorLength(v);
+		VectorSubtract(ent->enemy->s.origin, ent->s.origin, dir);
+		if (ent->spawnflags & 1)
+			mod = MOD_HANDGRENADE;
+		else
+			mod = MOD_GRENADE;
+		T_Damage(ent->enemy, ent, ent->owner, dir, ent->s.origin, vec3_origin, (int)points, (int)points, DAMAGE_RADIUS, mod);
+	}
+
+	if (ent->spawnflags & 2)
+		mod = MOD_HELD_GRENADE;
+	else if (ent->spawnflags & 1)
+		mod = MOD_HG_SPLASH;
+	else
+		mod = MOD_G_SPLASH;
+	T_RadiusDamage(ent, ent->owner, ent->dmg, ent->enemy, ent->dmg_radius, mod);
+
+	VectorMA(ent->s.origin, -0.02, ent->velocity, origin);
+	gi.WriteByte(svc_temp_entity);
+	if (ent->waterlevel)
+	{
+		if (ent->groundentity)
+			gi.WriteByte(TE_GRENADE_EXPLOSION_WATER);
+		else
+			gi.WriteByte(TE_ROCKET_EXPLOSION_WATER);
+	}
+	else
+	{
+		if (ent->groundentity)
+			gi.WriteByte(TE_GRENADE_EXPLOSION);
+		else
+			gi.WriteByte(TE_ROCKET_EXPLOSION);
+	}
+	gi.WritePosition(origin);
+	gi.multicast(ent->s.origin, MULTICAST_PHS);
+
+	G_FreeEdict(ent);
+}
+
+void Alt_Machinegun_Touch(edict_t* ent, edict_t* other, cplane_t* plane, csurface_t* surf)
+{
+	if (other == ent->owner)
+		return;
+
+	if (surf && (surf->flags & SURF_SKY))
+	{
+		G_FreeEdict(ent);
+		return;
+	}
+
+	if (!other->takedamage)
+	{
+		if (ent->spawnflags & 1)
+		{
+			if (random() > 0.5)
+				gi.sound(ent, CHAN_VOICE, gi.soundindex("weapons/hgrenb1a.wav"), 1, ATTN_NORM, 0);
+			else
+				gi.sound(ent, CHAN_VOICE, gi.soundindex("weapons/hgrenb2a.wav"), 1, ATTN_NORM, 0);
+		}
+		else
+		{
+			gi.sound(ent, CHAN_VOICE, gi.soundindex("weapons/grenlb1b.wav"), 1, ATTN_NORM, 0);
+		}
+		return;
+	}
+
+	ent->enemy = other;
+	Alt_Machinegun_Explode(ent);
+}
+
+void fire_machinegun_alt(edict_t* self, vec3_t start, vec3_t aimdir, int damage, int speed, float timer, float damage_radius)
+{
+	edict_t* grenade;
+	vec3_t	dir;
+	vec3_t	forward, right, up;
+
+	vectoangles(aimdir, dir);
+	AngleVectors(dir, forward, right, up);
+
+	grenade = G_Spawn();
+	VectorCopy(start, grenade->s.origin);
+	VectorScale(aimdir, speed, grenade->velocity);
+	VectorMA(grenade->velocity, 200 + crandom() * 10.0, up, grenade->velocity);
+	VectorMA(grenade->velocity, crandom() * 10.0, right, grenade->velocity);
+	VectorSet(grenade->avelocity, 300, 300, 300);
+	grenade->movetype = MOVETYPE_BOUNCE;
+	grenade->clipmask = MASK_SHOT;
+	grenade->solid = SOLID_BBOX;
+	grenade->s.effects |= EF_GRENADE;
+	VectorClear(grenade->mins);
+	VectorClear(grenade->maxs);
+	grenade->s.modelindex = gi.modelindex("models/objects/grenade/tris.md2");
+	grenade->owner = self;
+	grenade->touch = Alt_Machinegun_Touch;
+	grenade->nextthink = level.time + timer;
+	grenade->think = Alt_Machinegun_Explode;
+	grenade->dmg = damage;
+	grenade->dmg_radius = damage_radius;
+	grenade->classname = "grenade";
+
+	gi.linkentity(grenade);
+}
+
+void Alt_MachineGun_Fire(edict_t* ent) {
+	vec3_t	offset;
+	vec3_t	forward, right;
+	vec3_t	start;
+	int		damage = 120;
+	float	radius;
+
+	radius = damage + 40;
+
+	VectorSet(offset, 8, 8, ent->viewheight - 8);
+	AngleVectors(ent->client->v_angle, forward, right, NULL);
+	P_ProjectSource(ent->client, ent->s.origin, offset, forward, right, start);
+
+	VectorScale(forward, -2, ent->client->kick_origin);
+	ent->client->kick_angles[0] = -1;
+
+	fire_machinegun_alt(ent, start, forward, damage, 600, 2.5, radius);
+
+}
+
+
 //=================================================================================
 
 /*
@@ -1071,7 +1213,7 @@ void Cmd_WeaponAlternate(edict_t* ent)
 		}
 	}
 
-	//Super Shotgun Skill:
+	//Super Shotgun Skill: Teleport Bolt
 	if (ent->client->pers.weapon->classname == "weapon_supershotgun") {
 		vec3_t vec3_origin = { 0,0,0 };
 
@@ -1086,6 +1228,22 @@ void Cmd_WeaponAlternate(edict_t* ent)
 			gi.centerprintf(ent, "Not enough ammo!");
 		}
 		
+	}
+
+	//Machine Gun Skill: Grenade Launcher
+	if (ent->client->pers.weapon->classname == "weapon_machinegun") {
+		vec3_t vec3_origin = { 0,0,0 };
+
+		if (ent->client->pers.inventory[ent->client->ammo_index] >= 20) {
+			Alt_MachineGun_Fire(ent);
+			ent->client->pers.inventory[ent->client->ammo_index] -= 20;
+
+			if (ent->client->pers.inventory[ent->client->ammo_index] < 0)
+				ent->client->pers.inventory[ent->client->ammo_index] = 0;
+		}
+		else if (ent->client->pers.inventory[ent->client->ammo_index] < 20) {
+			gi.centerprintf(ent, "Not enough ammo!");
+		}
 	}
 }
 
