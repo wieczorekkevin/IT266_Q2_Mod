@@ -159,6 +159,7 @@ static void P_ProjectSource(gclient_t* client, vec3_t point, vec3_t distance, ve
 	G_ProjectSource(point, _distance, forward, right, result);
 }
 
+//kmw Super Shotgun Code
 void Alt_SuperShotgun_BoltTouch(edict_t* self, edict_t* other, cplane_t* plane, csurface_t* surf) {
 	int	mod = MOD_HYPERBLASTER;
 
@@ -250,6 +251,7 @@ void Alt_SuperShotgun_Fire(edict_t* ent, vec3_t g_offset, int damage, int effect
 	fire_supershotgun_alt(ent, start, forward, damage, 1000, effect);
 }
 
+//kmw Machinegun Code
 void Alt_Machinegun_Explode(edict_t* ent)
 {
 	vec3_t		origin;
@@ -390,6 +392,7 @@ void Alt_MachineGun_Fire(edict_t* ent) {
 	fire_machinegun_alt(ent, start, forward, damage, 600, 2.5, radius);
 }
 
+//kmw Grenade Launcher Code
 void Alt_GrenadeLauncher_Explode(edict_t* ent)
 {
 	vec3_t		origin;
@@ -508,6 +511,7 @@ void Alt_GrenadeLauncher_Fire(edict_t* ent, vec3_t origin, int flag) {
 	}
 }
 
+//kmw Chaingun Code
 void fire_chaingun_alt(edict_t* self, vec3_t start, vec3_t aimdir, int damage, int speed, float timer, float damage_radius) {
 	edict_t* grenade;
 	vec3_t	dir;
@@ -559,6 +563,235 @@ void Alt_ChainGun_Fire(edict_t* ent)
 	fire_chaingun_alt(ent, start, forward, damage, 500, 2.0, radius);
 }
 
+//kmw BFG Code
+void bfg_alt_explode(edict_t* self)
+{
+	edict_t* ent;
+	float	points;
+	vec3_t	v;
+	float	dist;
+
+	if (self->s.frame == 0)
+	{
+		// the BFG effect
+		ent = NULL;
+		while ((ent = findradius(ent, self->s.origin, self->dmg_radius)) != NULL)
+		{
+			if (!ent->takedamage)
+				continue;
+			if (ent == self->owner)
+				continue;
+			if (!CanDamage(ent, self))
+				continue;
+			if (!CanDamage(ent, self->owner))
+				continue;
+
+			VectorAdd(ent->mins, ent->maxs, v);
+			VectorMA(ent->s.origin, 0.5, v, v);
+			VectorSubtract(self->s.origin, v, v);
+			dist = VectorLength(v);
+			points = self->radius_dmg * (1.0 - sqrt(dist / self->dmg_radius));
+			if (ent == self->owner)
+				points = points * 0.5;
+
+			gi.WriteByte(svc_temp_entity);
+			gi.WriteByte(TE_BFG_EXPLOSION);
+			gi.WritePosition(ent->s.origin);
+			gi.multicast(ent->s.origin, MULTICAST_PHS);
+			T_Damage(ent, self, self->owner, self->velocity, ent->s.origin, vec3_origin, (int)points, 0, DAMAGE_ENERGY, MOD_BFG_EFFECT);
+		}
+	}
+
+	self->nextthink = level.time + FRAMETIME;
+	self->s.frame++;
+	if (self->s.frame == 5)
+		self->think = G_FreeEdict;
+}
+
+void bfg_alt_think(edict_t* self)
+{
+	edict_t* ent;
+	edict_t* ignore;
+	vec3_t	point;
+	vec3_t	dir;
+	vec3_t	start;
+	vec3_t	end;
+	int		dmg;
+	trace_t	tr;
+
+	dmg = 0;
+
+	ent = NULL;
+	while ((ent = findradius(ent, self->s.origin, 256)) != NULL)
+	{
+		if (ent == self)
+			continue;
+
+		if (ent == self->owner)
+			continue;
+
+		if (!ent->takedamage)
+			continue;
+
+		if (!(ent->svflags & SVF_MONSTER) && (!ent->client) && (strcmp(ent->classname, "misc_explobox") != 0))
+			continue;
+
+		VectorMA(ent->absmin, 0.5, ent->size, point);
+
+		VectorSubtract(point, self->s.origin, dir);
+		VectorNormalize(dir);
+
+		ignore = self;
+		VectorCopy(self->s.origin, start);
+		VectorMA(start, 2048, dir, end);
+		while (1)
+		{
+			tr = gi.trace(start, NULL, NULL, end, ignore, CONTENTS_SOLID | CONTENTS_MONSTER | CONTENTS_DEADMONSTER);
+
+			if (!tr.ent)
+				break;
+
+			// hurt it if we can
+			if ((tr.ent->takedamage) && !(tr.ent->flags & FL_IMMUNE_LASER) && (tr.ent != self->owner))
+				T_Damage(tr.ent, self, self->owner, dir, tr.endpos, vec3_origin, dmg, 1, DAMAGE_ENERGY, MOD_BFG_LASER);
+
+			// if we hit something that's not a monster or player we're done
+			if (!(tr.ent->svflags & SVF_MONSTER) && (!tr.ent->client))
+			{
+				gi.WriteByte(svc_temp_entity);
+				gi.WriteByte(TE_LASER_SPARKS);
+				gi.WriteByte(4);
+				gi.WritePosition(tr.endpos);
+				gi.WriteDir(tr.plane.normal);
+				gi.WriteByte(self->s.skinnum);
+				gi.multicast(tr.endpos, MULTICAST_PVS);
+				break;
+			}
+
+			ignore = tr.ent;
+			VectorCopy(tr.endpos, start);
+		}
+
+		gi.WriteByte(svc_temp_entity);
+		gi.WriteByte(TE_BFG_LASER);
+		gi.WritePosition(self->s.origin);
+		gi.WritePosition(tr.endpos);
+		gi.multicast(self->s.origin, MULTICAST_PHS);
+	}
+
+	self->nextthink = level.time + FRAMETIME;
+}
+
+void bfg_alt_touch(edict_t* self, edict_t* other, cplane_t* plane, csurface_t* surf)
+{
+	if (other == self->owner)
+		return;
+
+	if (surf && (surf->flags & SURF_SKY))
+	{
+		G_FreeEdict(self);
+		return;
+	}
+
+	if (self->owner->client)
+		PlayerNoise(self->owner, self->s.origin, PNOISE_IMPACT);
+
+	// core explosion - prevents firing it into the wall/floor
+	if (other->takedamage)
+		T_Damage(other, self, self->owner, self->velocity, self->s.origin, plane->normal, 200, 0, 0, MOD_BFG_BLAST);
+	T_RadiusDamage(self, self->owner, 200, other, 100, MOD_BFG_BLAST);
+
+	gi.sound(self, CHAN_VOICE, gi.soundindex("weapons/bfg__x1b.wav"), 1, ATTN_NORM, 0);
+	self->solid = SOLID_NOT;
+	self->touch = NULL;
+	VectorMA(self->s.origin, -1 * FRAMETIME, self->velocity, self->s.origin);
+	VectorClear(self->velocity);
+	self->s.modelindex = gi.modelindex("sprites/s_bfg3.sp2");
+	self->s.frame = 0;
+	self->s.sound = 0;
+	self->s.effects &= ~EF_ANIM_ALLFAST;
+	self->think = bfg_alt_explode;
+	self->nextthink = level.time + FRAMETIME;
+	self->enemy = other;
+
+	gi.WriteByte(svc_temp_entity);
+	gi.WriteByte(TE_BFG_BIGEXPLOSION);
+	gi.WritePosition(self->s.origin);
+	gi.multicast(self->s.origin, MULTICAST_PVS);
+}
+
+void fire_bfg_alt(edict_t* self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius)
+{
+	edict_t* bfg;
+
+	bfg = G_Spawn();
+	VectorCopy(start, bfg->s.origin);
+	VectorCopy(dir, bfg->movedir);
+	vectoangles(dir, bfg->s.angles);
+	VectorScale(dir, speed, bfg->velocity);
+	bfg->movetype = MOVETYPE_FLYMISSILE;
+	bfg->clipmask = MASK_SHOT;
+	bfg->solid = SOLID_BBOX;
+	bfg->s.effects |= EF_BFG | EF_ANIM_ALLFAST;
+	VectorClear(bfg->mins);
+	VectorClear(bfg->maxs);
+	bfg->s.modelindex = gi.modelindex("sprites/s_bfg1.sp2");
+	bfg->owner = self;
+	bfg->touch = bfg_alt_touch;
+	bfg->nextthink = level.time + 8000 / speed;
+	bfg->think = G_FreeEdict;
+	bfg->radius_dmg = damage;
+	bfg->dmg_radius = damage_radius;
+	bfg->classname = "bfg blast";
+	bfg->s.sound = gi.soundindex("weapons/bfg__l1a.wav");
+
+	bfg->think = bfg_alt_think;
+	bfg->nextthink = level.time + FRAMETIME;
+	bfg->teammaster = bfg;
+	bfg->teamchain = NULL;
+
+	gi.linkentity(bfg);
+}
+
+void Alt_BFG_Fire(edict_t* ent, int power)
+{
+	vec3_t	offset, start;
+	vec3_t	forward, right;
+	int		damage;
+	float	damage_radius = 800 + power;
+
+	damage = 500 + power;
+
+	if (ent->client->ps.gunframe == 9)
+	{
+		// send muzzle flash
+		gi.WriteByte(svc_muzzleflash);
+		gi.WriteShort(ent - g_edicts);
+		gi.multicast(ent->s.origin, MULTICAST_PVS);
+
+		ent->client->ps.gunframe++;
+
+		PlayerNoise(ent, ent->s.origin, PNOISE_WEAPON);
+		return;
+	}
+
+	AngleVectors(ent->client->v_angle, forward, right, NULL);
+
+	VectorScale(forward, -2, ent->client->kick_origin);
+
+	// make a big pitch kick with an inverse fall
+	ent->client->v_dmg_pitch = -40;
+	ent->client->v_dmg_roll = crandom() * 8;
+	ent->client->v_dmg_time = level.time + DAMAGE_TIME;
+
+	VectorSet(offset, 8, 8, ent->viewheight - 8);
+	P_ProjectSource(ent->client, ent->s.origin, offset, forward, right, start);
+	fire_bfg_alt(ent, start, forward, damage, 100 + power, damage_radius);
+
+	ent->client->ps.gunframe++;
+
+	PlayerNoise(ent, start, PNOISE_WEAPON);
+}
 
 //=================================================================================
 
@@ -1449,6 +1682,18 @@ void Cmd_WeaponAlternate(edict_t* ent)
 			else
 				gi.centerprintf(ent, "Not enough ammo!");
 		}	
+	}
+
+	//BFG Skill: Full Energy Shot
+	if (ent->client->pers.weapon->classname == "weapon_bfg") {
+		if (ent->client->pers.inventory[ent->client->ammo_index] > 0) {
+			int ammo = ent->client->pers.inventory[ent->client->ammo_index];
+			Alt_BFG_Fire(ent, ammo);
+
+			ent->client->pers.inventory[ent->client->ammo_index] = 0;
+		}
+		else
+			gi.centerprintf(ent, "Not enough ammo!");
 	}
 
 }
