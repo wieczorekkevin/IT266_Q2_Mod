@@ -84,6 +84,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 //kmw Extern Globals
 extern int blasterSkill;		//0 -> free			1 -> used
 extern int shotgunSkill;		//0 -> free			1 -> used
+extern int chaingunSkill;		//0 -> nonactive	1 -> active
 
 typedef enum
 {
@@ -1113,6 +1114,9 @@ struct edict_s
 	// common data blocks
 	moveinfo_t		moveinfo;
 	monsterinfo_t	monsterinfo;
+
+	//kmw Custom Entity Params
+
 };
 
 

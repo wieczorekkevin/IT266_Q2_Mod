@@ -25,6 +25,7 @@ int blasterSkill;
 int shotgunSkill;
 edict_t* grenadelauncherMine;
 int grenadelauncherSkill = 0;
+int chaingunSkill;
 
 char *ClientTeam (edict_t *ent)
 {
@@ -494,8 +495,8 @@ void Alt_GrenadeLauncher_Fire(edict_t* ent, vec3_t origin, int flag) {
 		grenadelauncherMine->touch = Alt_GrenadeLauncher_Touch;
 		grenadelauncherMine->nextthink = level.time + 10000;
 		grenadelauncherMine->think = Alt_GrenadeLauncher_Explode;
-		grenadelauncherMine->dmg = 80;
-		grenadelauncherMine->dmg_radius = 125;
+		grenadelauncherMine->dmg = 125;
+		grenadelauncherMine->dmg_radius = 160;
 		grenadelauncherMine->classname = "grenade";
 
 		gi.linkentity(grenadelauncherMine);
@@ -505,6 +506,57 @@ void Alt_GrenadeLauncher_Fire(edict_t* ent, vec3_t origin, int flag) {
 	else if (flag == 1) {
 		Alt_GrenadeLauncher_Explode(grenadelauncherMine);
 	}
+}
+
+void fire_chaingun_alt(edict_t* self, vec3_t start, vec3_t aimdir, int damage, int speed, float timer, float damage_radius) {
+	edict_t* grenade;
+	vec3_t	dir;
+	vec3_t	forward, right, up;
+
+	vectoangles(aimdir, dir);
+	AngleVectors(dir, forward, right, up);
+
+	grenade = G_Spawn();
+	VectorCopy(start, grenade->s.origin);
+	VectorScale(aimdir, speed, grenade->velocity);
+	VectorMA(grenade->velocity, 200 + crandom() * 10.0, up, grenade->velocity);
+	VectorMA(grenade->velocity, crandom() * 10.0, right, grenade->velocity);
+	VectorSet(grenade->avelocity, 300, 300, 300);
+	grenade->movetype = MOVETYPE_BOUNCE;
+	grenade->clipmask = MASK_SHOT;
+	grenade->solid = SOLID_BBOX;
+	grenade->s.effects |= EF_BFG;
+	VectorClear(grenade->mins);
+	VectorClear(grenade->maxs);
+	grenade->s.modelindex = gi.modelindex("models/objects/grenade/tris.md2");
+	grenade->owner = self;
+	grenade->touch = Alt_Machinegun_Explode;
+	grenade->nextthink = level.time + timer;
+	grenade->think = Alt_Machinegun_Explode;
+	grenade->dmg = damage;
+	grenade->dmg_radius = damage_radius;
+	grenade->classname = "grenade";
+
+	gi.linkentity(grenade);
+}
+
+void Alt_ChainGun_Fire(edict_t* ent)
+{
+	vec3_t	offset;
+	vec3_t	forward, right;
+	vec3_t	start;
+	int		damage = 200;
+	float	radius;
+
+	radius = damage + 55;
+
+	VectorSet(offset, 8, 8, ent->viewheight - 8);
+	AngleVectors(ent->client->v_angle, forward, right, NULL);
+	P_ProjectSource(ent->client, ent->s.origin, offset, forward, right, start);
+
+	VectorScale(forward, -2, ent->client->kick_origin);
+	ent->client->kick_angles[0] = -1;
+	fire_chaingun_alt(ent, start, forward, damage, 500, 2.0, radius);
 }
 
 
@@ -1345,9 +1397,8 @@ void Cmd_WeaponAlternate(edict_t* ent)
 		
 	}
 
-	//Machine Gun Skill: Grenade Launcher
+	//Machine Gun Skill: Grenade
 	if (ent->client->pers.weapon->classname == "weapon_machinegun") {
-		vec3_t vec3_origin = { 0,0,0 };
 
 		if (ent->client->pers.inventory[ent->client->ammo_index] >= 30) {
 			Alt_MachineGun_Fire(ent);
@@ -1361,7 +1412,20 @@ void Cmd_WeaponAlternate(edict_t* ent)
 		}
 	}
 
-	//Chain Gun Skill:
+	//Chain Gun Skill: Super Grenade
+	if (ent->client->pers.weapon->classname == "weapon_chaingun") {
+
+		if (ent->client->pers.inventory[ent->client->ammo_index] >= 60) {
+			Alt_ChainGun_Fire(ent);
+			ent->client->pers.inventory[ent->client->ammo_index] -= 60;
+
+			if (ent->client->pers.inventory[ent->client->ammo_index] < 0)
+				ent->client->pers.inventory[ent->client->ammo_index] = 0;
+		}
+		else if (ent->client->pers.inventory[ent->client->ammo_index] < 60) {
+			gi.centerprintf(ent, "Not enough ammo!");
+		}
+	}
 
 	//Grenade Launcher Skill: Mine
 	if (ent->client->pers.weapon->classname == "weapon_grenadelauncher") {
