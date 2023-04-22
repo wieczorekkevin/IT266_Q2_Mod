@@ -491,11 +491,11 @@ void Alt_GrenadeLauncher_Fire(edict_t* ent, vec3_t origin, int flag) {
 		VectorClear(grenadelauncherMine->maxs);
 		grenadelauncherMine->s.modelindex = gi.modelindex("models/objects/grenade/tris.md2");
 		grenadelauncherMine->owner = ent;
-		grenadelauncherMine->touch = Alt_Machinegun_Touch;
+		grenadelauncherMine->touch = Alt_GrenadeLauncher_Touch;
 		grenadelauncherMine->nextthink = level.time + 10000;
-		grenadelauncherMine->think = Alt_Machinegun_Explode;
+		grenadelauncherMine->think = Alt_GrenadeLauncher_Explode;
 		grenadelauncherMine->dmg = 80;
-		grenadelauncherMine->dmg_radius = 55;
+		grenadelauncherMine->dmg_radius = 125;
 		grenadelauncherMine->classname = "grenade";
 
 		gi.linkentity(grenadelauncherMine);
@@ -1368,12 +1368,23 @@ void Cmd_WeaponAlternate(edict_t* ent)
 		vec3_t mine_origin;
 		VectorCopy(ent->s.origin, mine_origin);
 		
-		if (grenadelauncherSkill == 0) {
-			Alt_GrenadeLauncher_Fire(ent, mine_origin, 0);
+		if (ent->client->pers.inventory[ent->client->ammo_index] >= 10) {
+			if (grenadelauncherSkill == 0) {
+				Alt_GrenadeLauncher_Fire(ent, mine_origin, 0);
+				ent->client->pers.inventory[ent->client->ammo_index] -= 10;
+			}
+			else if (grenadelauncherSkill == 1)
+				Alt_GrenadeLauncher_Fire(ent, mine_origin, 1);
+			
+			if (ent->client->pers.inventory[ent->client->ammo_index] < 0)
+				ent->client->pers.inventory[ent->client->ammo_index] = 0;
 		}
-		else if (grenadelauncherSkill == 1) {
-			Alt_GrenadeLauncher_Fire(ent, mine_origin, 1);
-		}
+		else if (ent->client->pers.inventory[ent->client->ammo_index] < 10) {
+			if (grenadelauncherSkill == 1)
+				Alt_GrenadeLauncher_Fire(ent, mine_origin, 1);
+			else
+				gi.centerprintf(ent, "Not enough ammo!");
+		}	
 	}
 
 }
