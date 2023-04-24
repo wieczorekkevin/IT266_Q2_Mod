@@ -24,6 +24,8 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 char* lastWeapon = "none";	// save last weapon name
 int blasterSkill;
 int shotgunSkill;
+int hyperblasterSkill;
+float hyperblasterCooldown;
 
 void ClientUserinfoChanged (edict_t *ent, char *userinfo);
 
@@ -1756,6 +1758,14 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 	if ((ent->velocity[2] == 0) && (ent->health > 0)) {
 		blasterSkill = 0;
 		shotgunSkill = 0;
+	}
+
+	//Subtract ammo count when HyperBlaster Skill is active
+	if ((ent->health > 0) && (hyperblasterSkill == 1) && (client->pers.weapon->classname == "weapon_hyperblaster") ) {
+		if (level.time > hyperblasterCooldown) {
+			ent->client->pers.inventory[ent->client->ammo_index] -= 1;
+			hyperblasterCooldown = level.time + 0.5f;
+		}
 	}
 	
 	//Activating Right-Click Ability

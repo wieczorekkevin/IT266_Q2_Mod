@@ -25,7 +25,10 @@ int blasterSkill;
 int shotgunSkill;
 edict_t* grenadelauncherMine;
 int grenadelauncherSkill = 0;
-int chaingunSkill;
+int hyperblasterSkill = 0;
+float hyperblasterCooldown;
+int railgunSkill = 0;
+edict_t* teleporter;
 
 char *ClientTeam (edict_t *ent)
 {
@@ -478,7 +481,7 @@ void Alt_GrenadeLauncher_Touch(edict_t* ent, edict_t* other, cplane_t* plane, cs
 	}
 
 	ent->enemy = other;
-	Alt_GrenadeLauncher_Explode(ent);
+	Alt_GrenadeLauncher_Explode(other);
 }
 
 void Alt_GrenadeLauncher_Fire(edict_t* ent, vec3_t origin, int flag) {
@@ -496,7 +499,7 @@ void Alt_GrenadeLauncher_Fire(edict_t* ent, vec3_t origin, int flag) {
 		grenadelauncherMine->s.modelindex = gi.modelindex("models/objects/grenade/tris.md2");
 		grenadelauncherMine->owner = ent;
 		grenadelauncherMine->touch = Alt_GrenadeLauncher_Touch;
-		grenadelauncherMine->nextthink = level.time + 10000;
+		grenadelauncherMine->nextthink = level.time + 10;
 		grenadelauncherMine->think = Alt_GrenadeLauncher_Explode;
 		grenadelauncherMine->dmg = 125;
 		grenadelauncherMine->dmg_radius = 160;
@@ -791,6 +794,45 @@ void Alt_BFG_Fire(edict_t* ent, int power)
 	ent->client->ps.gunframe++;
 
 	PlayerNoise(ent, start, PNOISE_WEAPON);
+}
+
+//kmw RailGun Code
+void Alt_RailGun_Think(edict_t* ent) {
+	gi.centerprintf(ent->owner, "Teleporter has disappeared");
+	G_FreeEdict(ent);
+	railgunSkill = 0;
+}
+
+void Alt_RailGun_Fire(edict_t* ent, vec3_t origin, int flag) {
+	//If TP is not set
+	if (flag == 0) {
+		railgunSkill = 1;
+		teleporter = G_Spawn();
+		VectorCopy(origin, teleporter->s.origin);
+		teleporter->movetype = MOVETYPE_NONE;
+		teleporter->clipmask = MASK_SHOT;
+		teleporter->solid = SOLID_BBOX;
+		teleporter->s.effects |= EF_GRENADE;
+		VectorClear(teleporter->mins);
+		VectorClear(teleporter->maxs);
+		teleporter->s.modelindex = gi.modelindex("models/objects/grenade/tris.md2");
+		teleporter->owner = ent;
+		teleporter->nextthink = level.time + 60;
+		teleporter->think = Alt_RailGun_Think;
+		teleporter->dmg = 125;
+		teleporter->dmg_radius = 160;
+		teleporter->classname = "grenade";
+
+		gi.linkentity(teleporter);
+
+	}
+	//If TP is set
+	else if (flag == 1) {
+		VectorCopy(teleporter->s.origin, ent->s.origin);
+		VectorCopy(teleporter->s.origin, ent->s.old_origin);
+		G_FreeEdict(teleporter);
+		railgunSkill = 0;
+	}
 }
 
 //=================================================================================
@@ -1669,6 +1711,7 @@ void Cmd_WeaponAlternate(edict_t* ent)
 			if (grenadelauncherSkill == 0) {
 				Alt_GrenadeLauncher_Fire(ent, mine_origin, 0);
 				ent->client->pers.inventory[ent->client->ammo_index] -= 10;
+				gi.centerprintf(ent, "Mine placed");
 			}
 			else if (grenadelauncherSkill == 1)
 				Alt_GrenadeLauncher_Fire(ent, mine_origin, 1);
@@ -1694,6 +1737,47 @@ void Cmd_WeaponAlternate(edict_t* ent)
 		}
 		else
 			gi.centerprintf(ent, "Not enough ammo!");
+	}
+
+	//HyperBlaster Skill: Healing Shots
+	if (ent->client->pers.weapon->classname == "weapon_hyperblaster") {
+		if (ent->client->pers.inventory[ent->client->ammo_index] > 0) {
+			if (hyperblasterSkill == 0) {
+				hyperblasterSkill = 1;
+				gi.centerprintf(ent, "Healing Bullets ON");
+				hyperblasterCooldown = level.time + 0.5f;
+			}
+				
+			else {
+				hyperblasterSkill = 0;
+				gi.centerprintf(ent, "Healing Bullets OFF");
+			}
+		}
+	}
+
+	//RailGun Skill: Teleporter
+	if (ent->client->pers.weapon->classname == "weapon_railgun") {
+		vec3_t tp_origin;
+		VectorCopy(ent->s.origin, tp_origin);
+
+		if (ent->client->pers.inventory[ent->client->ammo_index] >= 10) {
+			if (railgunSkill == 0) {
+				Alt_RailGun_Fire(ent, tp_origin, 0);
+				ent->client->pers.inventory[ent->client->ammo_index] -= 10;
+				gi.centerprintf(ent, "Teleporter placed");
+			}
+			else if (railgunSkill == 1)
+				Alt_RailGun_Fire(ent, tp_origin, 1);
+
+			if (ent->client->pers.inventory[ent->client->ammo_index] < 0)
+				ent->client->pers.inventory[ent->client->ammo_index] = 0;
+		}
+		else if (ent->client->pers.inventory[ent->client->ammo_index] < 10) {
+			if (railgunSkill == 1)
+				Alt_RailGun_Fire(ent, tp_origin, 1);
+			else
+				gi.centerprintf(ent, "Not enough ammo!");
+		}
 	}
 
 }

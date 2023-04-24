@@ -320,8 +320,14 @@ void blaster_touch (edict_t *self, edict_t *other, cplane_t *plane, csurface_t *
 
 	if (other->takedamage)
 	{
-		if (self->spawnflags & 1)
+		if (self->spawnflags & 1) {
 			mod = MOD_HYPERBLASTER;
+
+			//kmw HyperBlaster Skill Heal Code
+			self->owner->health += 1;
+			if (self->owner->health > self->owner->max_health)
+				self->owner->health = self->owner->max_health;
+		}
 		else
 			mod = MOD_BLASTER;
 		T_Damage (other, self, self->owner, self->velocity, self->s.origin, plane->normal, self->dmg, 1, DAMAGE_ENERGY, mod);
