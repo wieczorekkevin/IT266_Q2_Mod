@@ -987,7 +987,7 @@ void WaveSpawn(edict_t* ent, int wavenum) {
 	edict_t* enemy = G_Spawn();
 	vec3_t enemyspawn;
 	VectorCopy(ent->s.origin, enemyspawn);
-	enemyspawn[1] += 50;
+	enemyspawn[1] += 100;
 	VectorCopy(enemyspawn, enemy->s.origin);
 
 	SP_monster_soldier_light(enemy);

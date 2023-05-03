@@ -92,7 +92,9 @@ extern int waveActive;
 extern int shopActive;
 extern int waveNumber;
 extern int money;
-extern float waveTimer;
+extern int waveTimer;
+extern int enemyCount;
+extern float waveTimerUpdater;
 
 extern void WaveSpawn(edict_t* ent, int wavenum);
 

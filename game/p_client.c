@@ -27,6 +27,12 @@ int shotgunSkill;
 int hyperblasterSkill;
 float hyperblasterCooldown;
 
+int waveNumber;
+int money;
+int waveTimer;
+int enemyCount;
+float waveTimerUpdater;
+
 void ClientUserinfoChanged (edict_t *ent, char *userinfo);
 
 void SP_misc_teleporter_dest (edict_t *ent);
@@ -1766,6 +1772,16 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 			ent->client->pers.inventory[ent->client->ammo_index] -= 1;
 			hyperblasterCooldown = level.time + 0.5f;
 		}
+	}
+
+	//Increment waveTimer every second
+	if (level.time > waveTimerUpdater) {
+		waveTimer += 1;
+		waveTimerUpdater = level.time + 1.0f;
+	}
+
+	if ((gameActive == 1) && (ent->health > 0) && (waveActive == 1)) {
+		gi.bprintf(PRINT_HIGH, "STATS\nMoney: $%i\nWave: %i\nTime: %i\nEnemies Left: %i\n", money, waveNumber, waveTimer, enemyCount);
 	}
 	
 	//Activating Right-Click Ability

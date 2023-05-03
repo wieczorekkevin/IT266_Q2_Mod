@@ -37,7 +37,8 @@ int waveActive = 0;
 int shopActive = 0;
 int waveNumber = 1;
 int money = 0;
-float waveTimer = 0.0f;
+int waveTimer = 0;
+int waveTimerUpdater = 0.0f;
 
 char *ClientTeam (edict_t *ent)
 {
@@ -2006,13 +2007,15 @@ void Cmd_ModStart(edict_t* ent)
 		//Initialize game start
 		waveNumber = 1;
 		money = 0;
-		waveTimer = level.time;
+		waveTimer = 0;
+		waveTimerUpdater = level.time + 1;
 		shopActive = 0;
 		gameActive = 1;
 		waveActive = 1;
 	}
 	else if (gameActive == 1) {
-		waveTimer = level.time;
+		waveTimer = 0;
+		waveTimerUpdater = level.time + 1;
 		shopActive = 0;
 		waveActive = 1;
 	}
