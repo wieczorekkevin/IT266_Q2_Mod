@@ -87,6 +87,15 @@ extern int shotgunSkill;		//0 -> free			1 -> used
 extern int hyperblasterSkill;	//0 -> nonactive	1 -> active
 extern float hyperblasterCooldown;
 
+extern int gameActive;
+extern int waveActive;
+extern int shopActive;
+extern int waveNumber;
+extern int money;
+extern float waveTimer;
+
+extern void WaveSpawn(edict_t* ent, int wavenum);
+
 typedef enum
 {
 	DAMAGE_NO,

@@ -982,3 +982,13 @@ void SP_worldspawn (edict_t *ent)
 	gi.configstring(CS_LIGHTS+63, "a");
 }
 
+//kmw WaveSpawn function
+void WaveSpawn(edict_t* ent, int wavenum) {
+	edict_t* enemy = G_Spawn();
+	vec3_t enemyspawn;
+	VectorCopy(ent->s.origin, enemyspawn);
+	enemyspawn[1] += 50;
+	VectorCopy(enemyspawn, enemy->s.origin);
+
+	SP_monster_soldier_light(enemy);
+}

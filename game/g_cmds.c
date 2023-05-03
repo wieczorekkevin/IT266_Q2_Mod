@@ -1997,15 +1997,27 @@ void Cmd_WeaponAlternate(edict_t* ent)
 
 }
 
+
+//kmw Wave Handling
+
 void Cmd_ModStart(edict_t* ent)
 {
-	//Initialize game start
-	waveNumber = 1;
-	money = 0;
-	waveTimer = 0.0f;
-	shopActive = 0;
-	gameActive = 1;
-	waveActive = 1;
+	if (gameActive == 0) {
+		//Initialize game start
+		waveNumber = 1;
+		money = 0;
+		waveTimer = level.time;
+		shopActive = 0;
+		gameActive = 1;
+		waveActive = 1;
+	}
+	else if (gameActive == 1) {
+		waveTimer = level.time;
+		shopActive = 0;
+		waveActive = 1;
+	}
+	
+	WaveSpawn(ent, waveNumber);
 }
 
 /*
