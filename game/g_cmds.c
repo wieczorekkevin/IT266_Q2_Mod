@@ -29,6 +29,15 @@ int hyperblasterSkill = 0;
 float hyperblasterCooldown;
 int railgunSkill = 0;
 edict_t* teleporter;
+int rocketlauncherSkill = 0;
+float rocketlauncherCooldown;
+
+int gameActive = 0;
+int waveActive = 0;
+int shopActive = 0;
+int waveNumber = 1;
+int money = 0;
+float waveTimer = 0.0f;
 
 char *ClientTeam (edict_t *ent)
 {
@@ -833,6 +842,193 @@ void Alt_RailGun_Fire(edict_t* ent, vec3_t origin, int flag) {
 		G_FreeEdict(teleporter);
 		railgunSkill = 0;
 	}
+}
+
+//RocketLauncher Code
+void alt_rocket_think(edict_t* self) {
+	edict_t* ent;
+	edict_t* ignore;
+	vec3_t	point;
+	vec3_t	dir;
+	vec3_t	start;
+	vec3_t	end;
+	int		dmg;
+	trace_t	tr;
+
+	dmg = 10;
+
+	if (level.time > rocketlauncherCooldown) {
+		G_FreeEdict(self);
+		rocketlauncherSkill = 0;
+		rocketlauncherCooldown = 0.0f;
+		return;
+	}
+
+	ent = NULL;
+	while ((ent = findradius(ent, self->s.origin, 100)) != NULL)
+	{
+		if (ent == self)
+			continue;
+
+		if (ent == self->owner)
+			continue;
+
+		if (!ent->takedamage)
+			continue;
+
+		if (!(ent->svflags & SVF_MONSTER) && (!ent->client) && (strcmp(ent->classname, "misc_explobox") != 0))
+			continue;
+
+		VectorMA(ent->absmin, 0.5, ent->size, point);
+
+		VectorSubtract(point, self->s.origin, dir);
+		VectorNormalize(dir);
+
+		ignore = self;
+		VectorCopy(self->s.origin, start);
+		VectorMA(start, 2048, dir, end);
+		while (1)
+		{
+			tr = gi.trace(start, NULL, NULL, end, ignore, CONTENTS_SOLID | CONTENTS_MONSTER | CONTENTS_DEADMONSTER);
+
+			if (!tr.ent)
+					break;
+
+			// hurt it if we can
+			if ((tr.ent->takedamage) && !(tr.ent->flags & FL_IMMUNE_LASER) && (tr.ent != self->owner))
+					T_Damage(tr.ent, self, self->owner, dir, tr.endpos, vec3_origin, dmg, 1, DAMAGE_ENERGY, MOD_BFG_LASER);
+
+			// if we hit something that's not a monster or player we're done
+			if (!(tr.ent->svflags & SVF_MONSTER) && (!tr.ent->client))
+			{
+				gi.WriteByte(svc_temp_entity);
+				gi.WriteByte(TE_LASER_SPARKS);
+				gi.WriteByte(4);
+				gi.WritePosition(tr.endpos);
+				gi.WriteDir(tr.plane.normal);
+				gi.WriteByte(self->s.skinnum);
+				gi.multicast(tr.endpos, MULTICAST_PVS);
+				break;
+			}
+
+			ignore = tr.ent;
+			VectorCopy(tr.endpos, start);
+		}
+
+		gi.WriteByte(svc_temp_entity);
+		gi.WriteByte(TE_BFG_LASER);
+		gi.WritePosition(self->s.origin);
+		gi.WritePosition(tr.endpos);
+		gi.multicast(self->s.origin, MULTICAST_PHS);
+	}
+
+	self->nextthink = level.time + FRAMETIME;
+}
+
+
+
+
+void alt_rocket_touch(edict_t* ent, edict_t* other, cplane_t* plane, csurface_t* surf)
+{
+	vec3_t		origin;
+	int			n;
+
+	if (other == ent->owner)
+		return;
+
+	if (surf && (surf->flags & SURF_SKY))
+	{
+		G_FreeEdict(ent);
+		return;
+	}
+
+	if (ent->owner->client)
+		PlayerNoise(ent->owner, ent->s.origin, PNOISE_IMPACT);
+
+	// calculate position for the explosion entity
+	VectorMA(ent->s.origin, -0.02, ent->velocity, origin);
+
+	if (other->takedamage)
+	{
+		T_Damage(other, ent, ent->owner, ent->velocity, ent->s.origin, plane->normal, ent->dmg, 0, 0, MOD_ROCKET);
+	}
+	else
+	{
+		// don't throw any debris in net games
+		if (!deathmatch->value && !coop->value)
+		{
+			if ((surf) && !(surf->flags & (SURF_WARP | SURF_TRANS33 | SURF_TRANS66 | SURF_FLOWING)))
+			{
+				n = rand() % 5;
+				while (n--)
+					ThrowDebris(ent, "models/objects/debris2/tris.md2", 2, ent->s.origin);
+			}
+		}
+	}
+
+	T_RadiusDamage(ent, ent->owner, ent->radius_dmg, other, ent->dmg_radius, MOD_R_SPLASH);
+
+	gi.WriteByte(svc_temp_entity);
+	if (ent->waterlevel)
+		gi.WriteByte(TE_ROCKET_EXPLOSION_WATER);
+	else
+		gi.WriteByte(TE_ROCKET_EXPLOSION);
+	gi.WritePosition(origin);
+	gi.multicast(ent->s.origin, MULTICAST_PHS);
+
+	G_FreeEdict(ent);
+	rocketlauncherSkill = 0;
+	rocketlauncherCooldown = 0.0f;
+}
+
+void alt_fire_rocket(edict_t* self, vec3_t start, vec3_t dir, int damage, int speed, float damage_radius, int radius_damage) {
+	edict_t* rocket;
+
+	rocket = G_Spawn();
+	VectorCopy(start, rocket->s.origin);
+	VectorCopy(dir, rocket->movedir);
+	vectoangles(dir, rocket->s.angles);
+	VectorScale(dir, speed, rocket->velocity);
+	rocket->movetype = MOVETYPE_FLYMISSILE;
+	rocket->clipmask = MASK_SHOT;
+	rocket->solid = SOLID_BBOX;
+	rocket->s.effects |= EF_ROCKET;
+	VectorClear(rocket->mins);
+	VectorClear(rocket->maxs);
+	rocket->s.modelindex = gi.modelindex("models/objects/rocket/tris.md2");
+	rocket->owner = self;
+	rocket->touch = alt_rocket_touch;
+	rocket->nextthink = level.time + FRAMETIME;
+	rocket->think = alt_rocket_think;
+	rocket->dmg = damage;
+	rocket->radius_dmg = radius_damage;
+	rocket->dmg_radius = damage_radius;
+	rocket->s.sound = gi.soundindex("weapons/rockfly.wav");
+	rocket->classname = "rocket";
+
+	gi.linkentity(rocket);
+}
+
+
+void Alt_Rocket_Fire(edict_t* ent) {
+	vec3_t	offset, start;
+	vec3_t	forward, right;
+	int		damage;
+	float	damage_radius;
+	int		radius_damage;
+
+	damage = 100 + (int)(random() * 20.0);
+	radius_damage = 120;
+	damage_radius = 120;
+
+	AngleVectors(ent->client->v_angle, forward, right, NULL);
+
+	VectorScale(forward, -2, ent->client->kick_origin);
+	ent->client->kick_angles[0] = -1;
+
+	VectorSet(offset, 8, 8, ent->viewheight - 8);
+	P_ProjectSource(ent->client, ent->s.origin, offset, forward, right, start);
+	alt_fire_rocket(ent, start, forward, damage, 200, damage_radius, radius_damage);
 }
 
 //=================================================================================
@@ -1780,6 +1976,36 @@ void Cmd_WeaponAlternate(edict_t* ent)
 		}
 	}
 
+	//RocketLauncher Skill: BFG Rocket
+	if (ent->client->pers.weapon->classname == "weapon_rocketlauncher") {
+		if (ent->client->pers.inventory[ent->client->ammo_index] >= 10) {
+			if (rocketlauncherSkill == 0) {
+				Alt_Rocket_Fire(ent);
+				rocketlauncherCooldown = level.time + 10000;
+				rocketlauncherSkill = 1;
+				ent->client->pers.inventory[ent->client->ammo_index] -= 10;
+			}
+			
+			if (ent->client->pers.inventory[ent->client->ammo_index] < 0)
+				ent->client->pers.inventory[ent->client->ammo_index] = 0;
+		}
+
+		else if (ent->client->pers.inventory[ent->client->ammo_index] < 10) {
+			gi.centerprintf(ent, "Not enough ammo!");
+		}
+	}
+
+}
+
+void Cmd_ModStart(edict_t* ent)
+{
+	//Initialize game start
+	waveNumber = 1;
+	money = 0;
+	waveTimer = 0.0f;
+	shopActive = 0;
+	gameActive = 1;
+	waveActive = 1;
 }
 
 /*
@@ -1872,6 +2098,8 @@ void ClientCommand (edict_t *ent)
 	//kmw Added commands
 	else if (Q_stricmp(cmd, "weaponAlternate") == 0)
 		Cmd_WeaponAlternate(ent);
+	else if (Q_stricmp(cmd, "start") == 0)
+		Cmd_ModStart(ent);
 	else	// anything that doesn't match a command will be a chat
 		Cmd_Say_f (ent, false, true);
 }
