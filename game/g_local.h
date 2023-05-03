@@ -97,6 +97,7 @@ extern int enemyCount;
 extern float waveTimerUpdater;
 
 extern void WaveSpawn(edict_t* ent, int wavenum);
+extern void ShopMenu(edict_t* ent);
 
 typedef enum
 {

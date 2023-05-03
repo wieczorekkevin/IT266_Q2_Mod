@@ -19,7 +19,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 */
 #include "g_local.h"
 
-
+//kmw Globals
+extern int gameActive;
+extern int waveActive;
+extern int shopActive;
+extern int waveNumber;
+extern int money;
+extern int waveTimer;
+extern int enemyCount;
+extern float waveTimerUpdater;
 
 /*
 ======================================================================
@@ -335,6 +343,51 @@ void HelpComputer (edict_t *ent)
 	gi.unicast (ent, true);
 }
 
+//kmw Shop Menu
+
+void ShopMenuComputer(edict_t* ent)
+{
+	char	string[1024];
+
+	// send the layout
+	Com_sprintf(string, sizeof(string),
+		"xv 32 yv 8 picn help "			// background
+		"xv 202 yv 12 string2 \"$%i\" "													// Skill Border (says Money inside)
+		"xv 0 yv 24 cstring2 \"SHOP\" "															// Level Border (says Shop)
+		"xv 0 yv 54 cstring2 \"\'buy <name>\'\nheal:$30  ammo:$50  armor:$100\" "				// Primary Objective Border (main items)
+		"xv 0 yv 110 cstring2 \"\" "															// Secondary Objective Border (powerups)
+		"xv 50 yv 164 string2 \" next              \'start\'\" "
+		"xv 50 yv 172 string2 \"wave%i                   -->\" ",
+		money,
+		waveNumber);
+
+	gi.WriteByte(svc_layout);
+	gi.WriteString(string);
+	gi.unicast(ent, true);
+}
+
+void ShopMenu(edict_t* ent)
+{
+	// this is for backwards compatability
+	if (deathmatch->value)
+	{
+		Cmd_Score_f(ent);
+		return;
+	}
+
+	ent->client->showinventory = false;
+	ent->client->showscores = false;
+
+	if (ent->client->showhelp && (ent->client->pers.game_helpchanged == game.helpchanged))
+	{
+		ent->client->showhelp = false;
+		return;
+	}
+
+	ent->client->showhelp = true;
+	ent->client->pers.helpchanged = 0;
+	ShopMenuComputer(ent);
+}
 
 /*
 ==================

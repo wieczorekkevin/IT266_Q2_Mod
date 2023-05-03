@@ -1382,6 +1382,7 @@ void Cmd_Inven_f (edict_t *ent)
 	gi.unicast (ent, true);
 }
 
+
 /*
 =================
 Cmd_InvUse_f
@@ -2142,6 +2143,8 @@ void ClientCommand (edict_t *ent)
 		Cmd_ModStart(ent);
 	else if (Q_stricmp(cmd, "buy") == 0)
 		Cmd_ModBuy(ent);
+	else if (Q_stricmp(cmd, "shop") == 0)
+		ShopMenu(ent);
 	else	// anything that doesn't match a command will be a chat
 		Cmd_Say_f (ent, false, true);
 }
