@@ -1780,8 +1780,19 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		waveTimerUpdater = level.time + 1.0f;
 	}
 
-	if ((gameActive == 1) && (ent->health > 0) && (waveActive == 1)) {
-		gi.bprintf(PRINT_HIGH, "STATS\nMoney: $%i\nWave: %i\nTime: %i\nEnemies Left: %i\n", money, waveNumber, waveTimer, enemyCount);
+	//Update HUD
+	if ((gameActive == 1) && (ent->health > 0) && (waveActive == 1) && (shopActive == 0)) {
+		gi.bprintf(PRINT_HIGH, "Money: $%i\nWave: %i\nTime: %i\nEnemies Left: %i\n", money, waveNumber, waveTimer, enemyCount);
+	}
+
+	if (enemyCount <= 0) {
+		waveActive = 0;
+		shopActive = 1;
+		waveNumber += 1;
+	}
+
+	if ((gameActive == 1) && (ent->health > 0) && (waveActive == 0) && (shopActive == 1)) {
+		gi.bprintf(PRINT_HIGH, "SHOP\nMoney: $%i\n----------\nWrite \"buy <name>\" in console\nheal		$30\nammo		$50\narmor		$100\n", money);
 	}
 	
 	//Activating Right-Click Ability

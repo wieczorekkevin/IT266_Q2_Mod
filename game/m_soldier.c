@@ -28,6 +28,11 @@ SOLDIER
 #include "g_local.h"
 #include "m_soldier.h"
 
+//kmw Globals
+int money;
+int enemyCount;
+int waveActive;
+int gameActive;
 
 static int	sound_idle;
 static int	sound_sight1;
@@ -1190,6 +1195,12 @@ void soldier_die (edict_t *self, edict_t *inflictor, edict_t *attacker, int dama
 		self->monsterinfo.currentmove = &soldier_move_death5;
 	else
 		self->monsterinfo.currentmove = &soldier_move_death6;
+
+	//kmw Light Soldier Death
+	if ((gameActive == 1) && (waveActive == 1)) {
+		enemyCount -= 1;
+		money += 10;
+	}
 }
 
 

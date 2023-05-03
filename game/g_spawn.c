@@ -20,6 +20,10 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 
 #include "g_local.h"
 
+//kmw Globals
+int money;
+int enemyCount;
+
 typedef struct
 {
 	char	*name;
@@ -991,4 +995,5 @@ void WaveSpawn(edict_t* ent, int wavenum) {
 	VectorCopy(enemyspawn, enemy->s.origin);
 
 	SP_monster_soldier_light(enemy);
+	enemyCount = 1;
 }

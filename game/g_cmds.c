@@ -38,6 +38,7 @@ int shopActive = 0;
 int waveNumber = 1;
 int money = 0;
 int waveTimer = 0;
+int enemyCount = 0;
 int waveTimerUpdater = 0.0f;
 
 char *ClientTeam (edict_t *ent)
@@ -2008,6 +2009,7 @@ void Cmd_ModStart(edict_t* ent)
 		waveNumber = 1;
 		money = 0;
 		waveTimer = 0;
+		enemyCount = 0;
 		waveTimerUpdater = level.time + 1;
 		shopActive = 0;
 		gameActive = 1;
@@ -2021,6 +2023,29 @@ void Cmd_ModStart(edict_t* ent)
 	}
 	
 	WaveSpawn(ent, waveNumber);
+}
+
+void Cmd_ModBuy(edict_t* ent)
+{
+	if ((gameActive == 1) && (shopActive == 1)) {
+
+		if (Q_stricmp(gi.args(1), "heal") == 0) {
+			if (money >= 30) {
+				ent->health = ent->max_health;
+				money -= 30;
+				if (money < 0) {
+					money = 0;
+				}
+			}
+			else {
+				gi.centerprintf(ent, "Not enough money!");
+			}
+				
+		}
+
+
+
+	}
 }
 
 /*
@@ -2115,6 +2140,8 @@ void ClientCommand (edict_t *ent)
 		Cmd_WeaponAlternate(ent);
 	else if (Q_stricmp(cmd, "start") == 0)
 		Cmd_ModStart(ent);
+	else if (Q_stricmp(cmd, "buy") == 0)
+		Cmd_ModBuy(ent);
 	else	// anything that doesn't match a command will be a chat
 		Cmd_Say_f (ent, false, true);
 }
