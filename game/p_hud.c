@@ -352,12 +352,12 @@ void ShopMenuComputer(edict_t* ent)
 	// send the layout
 	Com_sprintf(string, sizeof(string),
 		"xv 32 yv 8 picn help "			// background
-		"xv 202 yv 12 string2 \"$%i\" "													// Skill Border (says Money inside)
-		"xv 0 yv 24 cstring2 \"SHOP\" "															// Level Border (says Shop)
-		"xv 0 yv 54 cstring2 \"\'buy <name>\'\nheal:$30  ammo:$50  armor:$100\" "				// Primary Objective Border (main items)
-		"xv 0 yv 110 cstring2 \"\" "															// Secondary Objective Border (powerups)
-		"xv 50 yv 164 string2 \" next              \'start\'\" "
-		"xv 50 yv 172 string2 \"wave%i                   -->\" ",
+		"xv 202 yv 12 string2 \"$%i\" "												// Skill Border (says Money inside)
+		"xv 0 yv 24 cstring2 \"SHOP\" "												// Level Border (says Shop)
+		"xv 0 yv 54 cstring2 \"\'buy <name>\'\nheal:$30  ammo:$50\" "										// Primary Objective Border (main items)
+		"xv 0 yv 110 cstring2 \"HealthUP:$100\" "															// Secondary Objective Border (powerups)
+		"xv 50 yv 164 string2 \" next               \'start\'\" "
+		"xv 50 yv 172 string2 \"wave %i              ----->\" ",
 		money,
 		waveNumber);
 
@@ -369,9 +369,14 @@ void ShopMenuComputer(edict_t* ent)
 void ShopMenu(edict_t* ent)
 {
 	// this is for backwards compatability
-	if (deathmatch->value)
+	if (gameActive == 0)
 	{
-		Cmd_Score_f(ent);
+		return;
+	}
+	if (waveActive == 1) {
+		return;
+	}
+	if (shopActive == 0) {
 		return;
 	}
 

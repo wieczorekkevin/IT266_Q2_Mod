@@ -2037,6 +2037,7 @@ void Cmd_ModBuy(edict_t* ent)
 				if (money < 0) {
 					money = 0;
 				}
+				ShopMenu(ent);
 			}
 			else {
 				gi.centerprintf(ent, "Not enough money!");
@@ -2044,9 +2045,48 @@ void Cmd_ModBuy(edict_t* ent)
 				
 		}
 
+		else if (Q_stricmp(gi.args(1), "ammo") == 0) {
+			if (money >= 70) {
+				int i;
+				gitem_t* it;
 
+				money -= 70;
+				for (i = 0; i < game.num_items; i++)
+				{
+					it = itemlist + i;
+					if (!it->pickup)
+						continue;
+					if (!(it->flags & IT_AMMO))
+						continue;
+					Add_Ammo(ent, it, 1000);
+				}
+
+				if (money < 0) {
+					money = 0;
+				}
+				ShopMenu(ent);
+			}
+			else {
+				gi.centerprintf(ent, "Not enough money!");
+			}
+		}
+
+		else if (Q_stricmp(gi.args(1), "HealthUp") == 0) {
+			if (money >= 100) {
+				ent->max_health += 50;
+				ent->health += 50;
+				money -= 100;
+			}
+			else {
+				gi.centerprintf(ent, "Not enough money!");
+			}
+		}
 
 	}
+}
+
+void Cmd_GiveMoney(edict_t* ent) {
+	money = 99999;
 }
 
 /*
@@ -2145,6 +2185,8 @@ void ClientCommand (edict_t *ent)
 		Cmd_ModBuy(ent);
 	else if (Q_stricmp(cmd, "shop") == 0)
 		ShopMenu(ent);
+	else if (Q_stricmp(cmd, "money") == 0)
+		Cmd_GiveMoney(ent);
 	else	// anything that doesn't match a command will be a chat
 		Cmd_Say_f (ent, false, true);
 }
