@@ -324,19 +324,13 @@ void HelpComputer (edict_t *ent)
 	// send the layout
 	Com_sprintf (string, sizeof(string),
 		"xv 32 yv 8 picn help "			// background
-		"xv 202 yv 12 string2 \"%s\" "		// skill
-		"xv 0 yv 24 cstring2 \"%s\" "		// level name
-		"xv 0 yv 54 cstring2 \"%s\" "		// help 1
-		"xv 0 yv 110 cstring2 \"%s\" "		// help 2
-		"xv 50 yv 164 string2 \" kills     goals    secrets\" "
-		"xv 50 yv 172 string2 \"%3i/%3i     %i/%i       %i/%i\" ", 
-		sk,
-		level.level_name,
-		game.helpmessage1,
-		game.helpmessage2,
-		level.killed_monsters, level.total_monsters, 
-		level.found_goals, level.total_goals,
-		level.found_secrets, level.total_secrets);
+		"xv 202 yv 12 string2 \"%s\" "				// skill
+		"xv 0 yv 24 cstring2 \"Help Menu\" "		// level name
+		"xv 0 yv 54 cstring2 \"Type \'start\' in the console to start next wave.\nAfter each wave, you can open shop with 'z'\" "				// help 1
+		"xv 0 yv 110 cstring2 \"Use \'buy <itemName>\' command to buy that item.\nUse \'end\' if you can't find the enemies.\" "							// help 2
+		"xv 50 yv 164 string2 \"\" "
+		"xv 50 yv 172 string2 \"\" ", 
+		sk);
 
 	gi.WriteByte (svc_layout);
 	gi.WriteString (string);
@@ -354,7 +348,7 @@ void ShopMenuComputer(edict_t* ent)
 		"xv 32 yv 8 picn help "			// background
 		"xv 202 yv 12 string2 \"$%i\" "												// Skill Border (says Money inside)
 		"xv 0 yv 24 cstring2 \"SHOP\" "												// Level Border (says Shop)
-		"xv 0 yv 54 cstring2 \"\'buy <name>\'\nheal:$30  ammo:$50\" "										// Primary Objective Border (main items)
+		"xv 0 yv 54 cstring2 \"heal:$30  ammo:$50\" "								// Primary Objective Border (main items)
 		"xv 0 yv 110 cstring2 \"HealthUP:$100\" "															// Secondary Objective Border (powerups)
 		"xv 50 yv 164 string2 \" next               \'start\'\" "
 		"xv 50 yv 172 string2 \"wave %i              ----->\" ",
