@@ -39,7 +39,10 @@ int waveNumber = 1;
 int money = 0;
 int waveTimer = 0;
 int enemyCount = 0;
+int enemyMaxCount = 0;
+int enemySpawnCount = 0;
 int waveTimerUpdater = 0.0f;
+float waveSpawnCooldown = 0.0f;
 
 char *ClientTeam (edict_t *ent)
 {
@@ -2015,15 +2018,18 @@ void Cmd_ModStart(edict_t* ent)
 		shopActive = 0;
 		gameActive = 1;
 		waveActive = 1;
+		enemySpawnCount = 0;
 	}
 	else if (gameActive == 1) {
 		waveTimer = 0;
 		waveTimerUpdater = level.time + 1;
 		shopActive = 0;
 		waveActive = 1;
+		enemySpawnCount = 0;
 	}
-	
-	WaveSpawn(ent, waveNumber);
+	enemyCount = waveNumber + 3;
+	enemyMaxCount = enemyCount;
+	waveSpawnCooldown = level.time + 3;
 }
 
 void Cmd_ModBuy(edict_t* ent)
@@ -2087,6 +2093,12 @@ void Cmd_ModBuy(edict_t* ent)
 
 void Cmd_GiveMoney(edict_t* ent) {
 	money = 99999;
+}
+
+void Cmd_EndWave(edict_t* ent) {
+	if (waveActive == 1) {
+		enemyCount = 0;
+	}
 }
 
 /*
@@ -2187,6 +2199,8 @@ void ClientCommand (edict_t *ent)
 		ShopMenu(ent);
 	else if (Q_stricmp(cmd, "money") == 0)
 		Cmd_GiveMoney(ent);
+	else if (Q_stricmp(cmd, "end") == 0)
+		Cmd_EndWave(ent);
 	else	// anything that doesn't match a command will be a chat
 		Cmd_Say_f (ent, false, true);
 }

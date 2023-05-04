@@ -31,7 +31,10 @@ int waveNumber;
 int money;
 int waveTimer;
 int enemyCount;
+int enemySpawnCount;
+int enemyMaxCount;
 float waveTimerUpdater;
+float waveSpawnCooldown;
 
 void ClientUserinfoChanged (edict_t *ent, char *userinfo);
 
@@ -1785,6 +1788,12 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		gi.bprintf(PRINT_HIGH, "Money: $%i\nWave: %i\nTime: %i\nEnemies Left: %i\n", money, waveNumber, waveTimer, enemyCount);
 	}
 
+	if ((gameActive == 1) && (waveActive == 1) && (level.time > waveSpawnCooldown) && (enemySpawnCount < enemyMaxCount)) {
+		WaveSpawn(ent, waveNumber);
+		enemySpawnCount += 1;
+		waveSpawnCooldown = level.time + 3;
+	}
+
 	if ((enemyCount <= 0) && (waveActive == 1)) {
 		gi.centerprintf(ent, "WAVE COMPLETE");
 		gi.bprintf(PRINT_HIGH, "Press z to view shop");
@@ -1792,6 +1801,8 @@ void ClientThink (edict_t *ent, usercmd_t *ucmd)
 		shopActive = 1;
 		waveNumber += 1;
 	}
+
+	
 	
 	//Activating Right-Click Ability
 

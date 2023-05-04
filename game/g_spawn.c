@@ -988,7 +988,7 @@ void SP_worldspawn (edict_t *ent)
 
 //kmw WaveSpawn function
 void WaveSpawn(edict_t* ent, int wavenum) {
-	edict_t* enemy[15];
+	/*edict_t* enemy[15];
 	if (wavenum <= 3) {
 		int i;
 		for (i = 0; i < 3 + wavenum; i++) {
@@ -998,8 +998,18 @@ void WaveSpawn(edict_t* ent, int wavenum) {
 			enemyspawn[1] += 100 + (int)random() * 20;
 			enemyspawn[0] += 100 + (int)random() * 20;
 			VectorCopy(enemyspawn, enemy[i]->s.origin);
-			SP_monster_soldier_light(enemy[i]);
+			SP_monster_soldier_light(enemy[i]);			//for each new enemy type, go to their .c file and make sure you add that they give money and lower enemycount
 			enemyCount += 1;
 		}
 	}
+	*/
+
+	edict_t* enemy;
+	enemy = G_Spawn();
+	vec3_t enemyspawn;
+	VectorCopy(ent->s.origin, enemyspawn);
+	enemyspawn[1] += 50 + (int)random() * 20;
+	enemyspawn[0] += 50 + (int)random() * 20;
+	VectorCopy(enemyspawn, enemy->s.origin);
+	SP_monster_soldier_light(enemy);			//for each new enemy type, go to their .c file and make sure you add that they give money and lower enemycount
 }
